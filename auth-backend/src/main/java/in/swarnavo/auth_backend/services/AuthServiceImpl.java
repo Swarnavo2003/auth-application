@@ -60,7 +60,7 @@ public class AuthServiceImpl implements AuthService {
                     new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
             );
         } catch (Exception e) {
-            throw new BadCredentialsException("Invalid Credentials");
+            throw new BadCredentialsException("Invalid Email Or Password");
         }
     }
 }

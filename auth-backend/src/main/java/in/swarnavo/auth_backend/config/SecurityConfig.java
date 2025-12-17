@@ -1,5 +1,6 @@
 package in.swarnavo.auth_backend.config;
 
+import in.swarnavo.auth_backend.dtos.ApiError;
 import in.swarnavo.auth_backend.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -39,17 +40,29 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/login").permitAll()
                         .anyRequest().authenticated()
         ).exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, e) -> {
-            e.printStackTrace();
+            // e.printStackTrace();
             response.setStatus(401);
             response.setContentType("application/json");
             String message = "Unauthorized Access : " + e.getMessage();
-            Map<String, String> errorMap = Map.of(
-                    "message", message,
-                    "status", String.valueOf(HttpStatus.UNAUTHORIZED),
-                    "statusCode", String.valueOf(401)
+            String error = (String) request.getAttribute("error");
+
+            if(error != null) {
+                message = error;
+            }
+
+//            Map<String, String> errorMap = Map.of(
+//                    "message", message,
+//                    "status", String.valueOf(HttpStatus.UNAUTHORIZED),
+//                    "statusCode", String.valueOf(401)
+//            );
+            var apiError = ApiError.of(
+                    HttpStatus.UNAUTHORIZED.value(),
+                    "Unauthorized Access",
+                    message,
+                    request.getRequestURI()
             );
             var objectMapper = new ObjectMapper();
-            response.getWriter().write(objectMapper.writeValueAsString(errorMap));
+            response.getWriter().write(objectMapper.writeValueAsString(apiError));
         })).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
