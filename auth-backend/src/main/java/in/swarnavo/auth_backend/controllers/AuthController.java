@@ -4,6 +4,7 @@ import in.swarnavo.auth_backend.dtos.LoginRequest;
 import in.swarnavo.auth_backend.dtos.TokenResponse;
 import in.swarnavo.auth_backend.dtos.UserDto;
 import in.swarnavo.auth_backend.services.AuthService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,8 +23,8 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
 
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest loginRequest) {
-        TokenResponse tokenResponse = authService.loginUser(loginRequest);
+    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
+        TokenResponse tokenResponse = authService.loginUser(loginRequest, response);
         return ResponseEntity.ok(tokenResponse);
     }
 

@@ -7,7 +7,9 @@ import in.swarnavo.auth_backend.entities.RefreshToken;
 import in.swarnavo.auth_backend.entities.User;
 import in.swarnavo.auth_backend.repositories.RefreshTokenRepository;
 import in.swarnavo.auth_backend.repositories.UserRepository;
+import in.swarnavo.auth_backend.security.CookieService;
 import in.swarnavo.auth_backend.security.JwtService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -32,6 +34,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
     private final ModelMapper modelMapper;
+    private final CookieService cookieService;
 
     @Override
     public UserDto registerUser(UserDto userDto) {
@@ -40,7 +43,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public TokenResponse loginUser(LoginRequest loginRequest) {
+    public TokenResponse loginUser(LoginRequest loginRequest, HttpServletResponse response) {
         Authentication authenticate = authenticate(loginRequest);
         User user = userRepository
                 .findByEmail(loginRequest.getEmail())
@@ -62,6 +65,9 @@ public class AuthServiceImpl implements AuthService {
 
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user, refreshTokenOb.getJti());
+
+        cookieService.attachRefreshCookie(response, refreshToken, (int)jwtService.getRefreshTtlSeconds());
+        cookieService.addNoStoreHeaders(response);
 
         TokenResponse tokenResponse = new TokenResponse();
         tokenResponse.setAccessToken(accessToken);
