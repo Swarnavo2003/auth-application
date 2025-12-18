@@ -3,7 +3,9 @@ package in.swarnavo.auth_backend.services;
 import in.swarnavo.auth_backend.dtos.LoginRequest;
 import in.swarnavo.auth_backend.dtos.TokenResponse;
 import in.swarnavo.auth_backend.dtos.UserDto;
+import in.swarnavo.auth_backend.entities.RefreshToken;
 import in.swarnavo.auth_backend.entities.User;
+import in.swarnavo.auth_backend.repositories.RefreshTokenRepository;
 import in.swarnavo.auth_backend.repositories.UserRepository;
 import in.swarnavo.auth_backend.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -24,6 +29,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
     private final ModelMapper modelMapper;
 
@@ -43,11 +49,23 @@ public class AuthServiceImpl implements AuthService {
             throw new DisabledException("User is disabled");
         }
 
+        String jti = UUID.randomUUID().toString();
+        var refreshTokenOb = RefreshToken.builder()
+                .jti(jti)
+                .user(user)
+                .createdAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(jwtService.getRefreshTtlSeconds()))
+                .revoked(false)
+                .build();
+
+        refreshTokenRepository.save(refreshTokenOb);
+
         String accessToken = jwtService.generateAccessToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user, refreshTokenOb.getJti());
 
         TokenResponse tokenResponse = new TokenResponse();
         tokenResponse.setAccessToken(accessToken);
-        tokenResponse.setRefreshToken("");
+        tokenResponse.setRefreshToken(refreshToken);
         tokenResponse.setExpiresIn(jwtService.getAccessTtlSeconds());
         tokenResponse.setUser(modelMapper.map(user, UserDto.class));
 
